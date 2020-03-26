@@ -5,9 +5,11 @@ on:
     branches:
       - master
       - 2.x
+      - 'renovate/*'
 jobs:
   test:
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && !startsWith(github.head_ref, 'renovate/'))
     strategy:
       matrix:
         node: [ 10, 12 ]
@@ -38,15 +40,9 @@ jobs:
           mysql database: 'ghost_testing'
           mysql root password: 'root'
 
-      - uses: Dreamcodeio/pr-has-label-action@master
-        id: allTestsLabel
-        if: github.event_name == 'pull_request'
-        with:
-          label: all-tests
-
       - run: yarn
       - run: yarn lint
       - run: grunt test-acceptance --verbose
       - run: grunt test-unit --verbose
       - run: grunt test-regression --verbose
-        if: startsWith(github.head_ref, 'renovate/') || github.event_name != 'pull_request' || steps.allTestsLabel.outputs.hasLabel
+        if: startsWith(github.head_ref, 'renovate/') || github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'all-tests')
